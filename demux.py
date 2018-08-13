@@ -79,23 +79,38 @@ def demux(eac3to_cmd, name, source, dest):
                 elif "h264" in track_type:
                     to_add = "vid" + "_" + short_name + "_" + start_num + ".h264"
                 elif "PCM" in track_type:
+                    pattern = re.compile(".*?, (.*?),")
+                    match = pattern.match(track_type).group(1)
+                    country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match]
+
                     if pcm_to_flac_ans == "y" or convert_all_to_flac:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + ".flac"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + "".join(country_code) + ".flac"
                     else:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + ".pcm"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + "".join(country_code) + ".pcm"
                 elif "TrueHD" in track_type:
+                    pattern = re.compile(".*?, (.*?),")
+                    match = pattern.match(track_type).group(1)
+                    country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match]
+
                     if convert_all_to_flac:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + ".flac"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + "".join(country_code) + ".flac"
                     else:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + ".truehd"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + "".join(country_code) +".truehd"
                 elif "DTS Master Audio" in track_type:
+                    pattern = re.compile(".*?, (.*?),")
+                    match = pattern.match(track_type).group(1)
+                    country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match]
+
                     if convert_all_to_flac:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + ".flac"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + "".join(country_code) + ".flac"
                     else:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + ".dts"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + "".join(country_code) + ".dts"
                 elif "PGS" in track_type:
                     # get language here
-                    to_add = "sub" + "_" + short_name + "_" + start_num + "_track" + str(counter) + ".sup"
+                    pattern = re.compile("^.*?, ([a-zA-Z]*)")
+                    match = pattern.match(track_type).group(1)
+                    country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match]
+                    to_add = "sub" + "_" + short_name + "_" + start_num + "_track" + str(counter) + "_" + "".join(country_code) + ".sup"
                 outer_arr.append([line_num, to_add])
 
             print(outer_arr)
