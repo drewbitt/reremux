@@ -2,6 +2,8 @@
 import subprocess
 import sys
 import os
+import re
+import country_list
 
 def demux(eac3to_cmd, name, source, dest):
     try:
@@ -42,4 +44,18 @@ def demux(eac3to_cmd, name, source, dest):
         cmd = eac3to_cmd + " \"" + source + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
         with open(os.devnull, "w") as f:
             proc = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=f)
-            print(proc.stdout.decode())
+            str_output = proc.stdout.decode()
+
+            # debugging line
+            print(str_output)
+
+            # get line numbers
+            # this really may not be necessary and could have just taken the number of lines - I'll see
+            pattern = re.compile("[0-9]+: ")
+            matches = pattern.findall(str_output)
+
+            line_numbers = [int(words) for segments in matches for words in segments.split(":")[0]]
+
+            # Reduce the output down to what I need
+            pattern = re.compile("([1-9]|core)+: (.*)")
+            print(pattern.findall(str_output))
