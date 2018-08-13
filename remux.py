@@ -2,6 +2,7 @@
 import subprocess
 import sys
 import os
+import random
 from argparse import ArgumentParser
 import demux
 import merge
@@ -20,15 +21,17 @@ except subprocess.CalledProcessError as ex:
     print(ex)
     sys.exit(1)
 
-parser = ArgumentParser(
-    "Define what I do"
-)
+# Define what the program does
+parser = ArgumentParser("Remuxin'")
+
 parser.add_argument('srcdest', metavar="src dest", type=str, nargs="+")
-parser.add_argument("--mux-only", dest="mux_only", nargs="?", const="True", help="Only mux and don't demux from BDMV. Ignores source if set")
+parser.add_argument("--mux-only", dest="mux_only", nargs="?", const="True",
+                    help="Only mux and don't demux from BDMV. Ignores source if set")
+# TODO: Actually ignore source if --mux-only is set
 args = parser.parse_args()
 
-source = (args.srcdest)[0]
-dest = (args.srcdest)[1]
+source = args.srcdest[0]
+dest = args.srcdest[1]
 
 # Check if BDMV folder exists
 err = True
@@ -36,7 +39,8 @@ err = True
 try:
     for _, dirs, _ in os.walk(source):
         for d in dirs:
-            if (d == "BDMV"): err = False
+            if d == "BDMV":
+                err = False
 except OSError as ex:
     print(ex)
     print("Probably either the folder doesn't exist or you have the wrong permissions for the folder")
@@ -60,4 +64,8 @@ if not (os.path.isdir(dest)):
 print("Input series name")
 series_name = input()
 
-demux.demux(eac3to_cmd, series_name, os.path.normpath(source), os.path.normpath(dest))
+# Get short name for use in naming files - makes it probably unique as well
+# TODO: I don't like this. Don't know what you got with non-words. Would rather have first whole word.
+short_name = ''.join(random.choice(series_name.replace(" ", "")) for x in range(6))
+
+demux.demux(eac3to_cmd, short_name, os.path.normpath(source), os.path.normpath(dest))
