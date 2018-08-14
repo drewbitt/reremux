@@ -75,9 +75,9 @@ def mux(short_name, dest):
 
         print("Sub files lang dict: {}".format(sub_files_lang_dict))
 
-        # If checking for signs and songs, check if language has 2 or more sub tracks and then add smallest in front
-        if check_signs_songs:
-            for key, value in sub_files_lang_dict.items():
+        for key, value in sub_files_lang_dict.items():
+            # If checking for signs and songs, check if language has 2 or more sub tracks and then add smallest in front
+            if check_signs_songs:
                 if len(value) >= 2:
                     filepaths = []
                     for subf in value:
@@ -85,8 +85,13 @@ def mux(short_name, dest):
                         filepaths.append([subf, os.path.getsize(subf)])
                     # smallest in the front
                     filepaths.sort(key=lambda filename: filename[1], reverse=False)
-                    value = filepaths
-            print("After adjusting for signs and songs {}".format(sub_files_lang_dict))
+                    filepaths = [item[0] for item in filepaths]
+                    sub_files_lang_dict[key] = filepaths
+            else:
+                # Still want the track ids to be in the right order
+                sub_files_lang_dict[key] = sorted(value)
+
+        print("After adjusting {}".format(sub_files_lang_dict))
 
         # TODO: Always making English default right now. Ask for this
         # TODO: Also I guess ask for subtitle titles if not signs and songs
