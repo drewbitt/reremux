@@ -75,14 +75,14 @@ def mux(short_name, dest):
 
         print("Sub files lang dict: {}".format(sub_files_lang_dict))
 
-        # track 5 smaller one
+        # If checking for signs and songs, check if language has 2 or more sub tracks and then add smallest in front
         if check_signs_songs:
-            for key, value in sub_files_lang_dict:
-                print(value)
+            for key, value in sub_files_lang_dict.items():
                 if len(value) >= 2:
                     filepaths = []
                     for subf in value:
-                        filepaths.append(subf, os.path.getsize(subf))
+                        # append size to a new list to sort by size
+                        filepaths.append([subf, os.path.getsize(subf)])
                     # smallest in the front
                     filepaths.sort(key=lambda filename: filename[1], reverse=False)
                     value = filepaths
