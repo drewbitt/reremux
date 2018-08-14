@@ -66,14 +66,8 @@ def mux(short_name, series_name, dest):
             ep_key = key
 
         sub_files = [item for item in value if item.startswith("sub")]
-
         # separate sub files based on language
-        sub_files_lang_dict = defaultdict(list)
-
-        for sub in sub_files:
-            pattern = re.compile(".*([a-z]{2})\.")
-            sub_country = pattern.match(sub).group(1)
-            sub_files_lang_dict[sub_country].append(sub)
+        sub_files_lang_dict = make_dict_by_country(sub_files)
 
         for key1, value1 in sub_files_lang_dict.items():
             # If checking for signs and songs, check if language has 2 or more sub tracks and then add smallest in front
@@ -120,11 +114,32 @@ def mux(short_name, series_name, dest):
         mkvmerge_string += " {0} {1}".format(comp_str, ''.join([item for item in value if item.startswith("vid")]))
 
         # Add audio
+        aud_files = [item for item in value if item.startswith("aud")]
+        aud_files_lang_dict = make_dict_by_country(aud_files)
+
+        # Do English first and make default always (for now)
+
+        # Then do other languages
+        for key1, value1 in aud_files_lang_dict.items():
+            if key1 != "en":
+                for file in sorted(value1):
+                    mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, key1, file)
 
         # Add subs
         for key1, value1 in sub_files_lang_dict.items():
             for val in value1:
                 mkvmerge_string += " {0} --language 0:{1} ".format(comp_str, key1)
                 # Add sub titles (right now, only if signs/songs is set)
+                # Add sub file
 
         print(mkvmerge_string)
+
+
+def make_dict_by_country(list_of_files):
+    files_lang_dict = defaultdict(list)
+
+    for file in list_of_files:
+        pattern = re.compile(".*([a-z]{2})\.")
+        country = pattern.match(file).group(1)
+        files_lang_dict[country].append(file)
+    return files_lang_dict
