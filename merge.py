@@ -6,7 +6,7 @@ import re
 from collections import defaultdict
 
 
-def mux(short_name, dest):
+def mux(short_name, series_name, dest):
     """Mux a specified short names files in destination directory using mkvmerge"""
 
     # Test mkvmerge
@@ -61,7 +61,9 @@ def mux(short_name, dest):
         if not pad_with_three:
             # pad with two instead of three. Yes, I know this is dumb, why even pad with three before?
             # cuz didn't write it to only pad with two before UNLESS it needed three in demux, always three instead
-            key = (key.lstrip("0")).rjust(2, "0")
+            ep_key = (key.lstrip("0")).rjust(2, "0")
+        else:
+            ep_key = key
 
         sub_files = [item for item in value if item.startswith("sub")]
 
@@ -73,26 +75,31 @@ def mux(short_name, dest):
             sub_country = pattern.match(sub).group(1)
             sub_files_lang_dict[sub_country].append(sub)
 
-        print("Sub files lang dict: {}".format(sub_files_lang_dict))
-
-        for key, value in sub_files_lang_dict.items():
+        for key1, value1 in sub_files_lang_dict.items():
             # If checking for signs and songs, check if language has 2 or more sub tracks and then add smallest in front
             if check_signs_songs:
-                if len(value) >= 2:
+                if len(value1) >= 2:
                     filepaths = []
-                    for subf in value:
+                    for subf in value1:
                         # append size to a new list to sort by size
                         filepaths.append([subf, os.path.getsize(subf)])
                     # smallest in the front
                     filepaths.sort(key=lambda filename: filename[1], reverse=False)
                     filepaths = [item[0] for item in filepaths]
-                    sub_files_lang_dict[key] = filepaths
+                    sub_files_lang_dict[key1] = filepaths
             else:
                 # Still want the track ids to be in the right order
                 sub_files_lang_dict[key] = sorted(value)
 
-        print("After adjusting {}".format(sub_files_lang_dict))
-
         # TODO: Always making English default right now. Ask for this
         # TODO: Also I guess ask for subtitle titles if not signs and songs
-        mkvmerge_string = ""
+        #       maybe should add that to filename of the video
+        mkvmerge_string = "mkvmerge -o \"{0} - {1} - [BDREMUX 1080p ".format(series_name, ep_key)
+        if any(".truehd" in s for s in value):
+            mkvmerge_string += "TrueHD "
+        elif any(".flac" in s for s in value):
+            mkvmerge_string += "FLAC "
+        elif any(".dts" in s for s in value):
+            mkvmerge_string += "DTS-HDMA "
+        if any(".pcm" in s for s in value):
+            mkvmerge_string += "PCM "
