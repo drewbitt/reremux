@@ -43,8 +43,12 @@ def demux(eac3to_cmd, short_name, source, dest):
     print("If 2.0 is the only audio present, convert to FLAC? (y/n)")
     twoch_to_flac_ans = input()
 
-    # Loop eac3to
+    # Subtitle work
+    # TODO: Notice that there are no chapters but the first playlist has chapters, then ask
+    #       to split BD chapters based off of video times automatically - splitBDchapters plus vid times
+    # TODO: Ask to name subtitle tracks generic names
 
+    # Loop eac3to
     for i in range(int(beg), int(last) + 1):
         cmd = eac3to_cmd + " \"" + source + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
         with open(os.devnull, "w") as f:
