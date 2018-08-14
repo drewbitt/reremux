@@ -93,13 +93,38 @@ def mux(short_name, series_name, dest):
 
         # TODO: Always making English default right now. Ask for this
         # TODO: Also I guess ask for subtitle titles if not signs and songs
-        #       maybe should add that to filename of the video
-        mkvmerge_string = "mkvmerge -o \"{0} - {1} - [BDREMUX 1080p ".format(series_name, ep_key)
+        # TODO: I am assuming h264. This is pretty much OK but wouldn't be OK for 4k, and I don't personally
+        #       care enough to add in 4k batching ability at the moment
+
+        vid_resolution_pattern = re.compile(".*_([0-9]+(i|p))")
+        vid_resolution = vid_resolution_pattern.match(''.join([item for item in value if item.startswith("vid")])).group(1)
+
+        # aud_channels_pattern = re.compile(".*([0-9]+\.[0-9])")
+        # aud_channels = aud_channels_pattern.match(''.join([item for item in value if item.startswith("aud")])).group(1)
+
+        # If you want custom formatting you have to adjust this yourself. Screw actual usability!
+
+        mkvmerge_string = "mkvmerge -o \"{0} - {1} [Blu-ray {2} h264 ".format(series_name, ep_key, vid_resolution)
         if any(".truehd" in s for s in value):
-            mkvmerge_string += "TrueHD "
+            mkvmerge_string += "TrueHD"
         elif any(".flac" in s for s in value):
-            mkvmerge_string += "FLAC "
+            mkvmerge_string += "FLAC"
         elif any(".dts" in s for s in value):
-            mkvmerge_string += "DTS-HDMA "
+            mkvmerge_string += "DTS-HDMA"
         if any(".pcm" in s for s in value):
-            mkvmerge_string += "PCM "
+            mkvmerge_string += "PCM"
+        comp_str = "--compression 0:none"
+        # Add chapters
+        mkvmerge_string += " REMUX].mkv\" --chapters {}".format(''.join([item for item in value if item.startswith("chapters")]))
+        # Add video
+        mkvmerge_string += " {0} {1}".format(comp_str, ''.join([item for item in value if item.startswith("vid")]))
+
+        # Add audio
+
+        # Add subs
+        for key1, value1 in sub_files_lang_dict.items():
+            for val in value1:
+                mkvmerge_string += " {0} --language 0:{1} ".format(comp_str, key1)
+                # Add sub titles (right now, only if signs/songs is set)
+
+        print(mkvmerge_string)
