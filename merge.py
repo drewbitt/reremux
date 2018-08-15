@@ -98,39 +98,57 @@ def mux(short_name, series_name, dest):
 
         # If you want custom formatting you have to adjust this yourself. Screw actual usability!
 
-        mkvmerge_string = "mkvmerge -o \"{0} - {1} [Blu-ray {2} h264 ".format(series_name, ep_key, vid_resolution)
+        mkvmerge_string = "mkvmerge -o "
+
+        # Create file name path
+        mkvmerge_out_path = "\"{0} - {1} [Blu-ray {2} h264 ".format(series_name, ep_key, vid_resolution)
         if any(".truehd" in s for s in value):
-            mkvmerge_string += "TrueHD"
+            mkvmerge_out_path += "TrueHD"
         elif any(".flac" in s for s in value):
-            mkvmerge_string += "FLAC"
+            mkvmerge_out_path += "FLAC"
         elif any(".dts" in s for s in value):
-            mkvmerge_string += "DTS-HDMA"
+            mkvmerge_out_path += "DTS-HDMA"
         if any(".pcm" in s for s in value):
-            mkvmerge_string += "PCM"
+            mkvmerge_out_path += "PCM"
         comp_str = "--compression 0:none"
+        mkvmerge_out_path += " REMUX].mkv\""
+        mkvmerge_string += os.path.join(dest, mkvmerge_out_path)
+
         # Add chapters
-        mkvmerge_string += " REMUX].mkv\" --chapters {}".format(''.join([item for item in value if item.startswith("chapters")]))
+        mkvmerge_string += " --chapters {}".format(os.path.join(dest, ''.join([item for item in value if item.startswith("chapters")])))
         # Add video
-        mkvmerge_string += " {0} {1}".format(comp_str, ''.join([item for item in value if item.startswith("vid")]))
+        mkvmerge_string += " {0} {1}".format(comp_str, os.path.join(dest, ''.join([item for item in value if item.startswith("vid")])))
 
         # Add audio
+
+        # First create dict by languages
         aud_files = [item for item in value if item.startswith("aud")]
         aud_files_lang_dict = make_dict_by_country(aud_files)
 
-        # Do English first and make default always (for now)
+        # Then do English first for muxing string. Automatically is default
+        for val in sorted(aud_files_lang_dict["en"]):
+            mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, "en", os.path.join(dest, val))
 
         # Then do other languages
         for key1, value1 in aud_files_lang_dict.items():
             if key1 != "en":
                 for file in sorted(value1):
-                    mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, key1, file)
+                    mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, key1, os.path.join(dest, file))
 
         # Add subs
+        count = 0
         for key1, value1 in sub_files_lang_dict.items():
             for val in value1:
-                mkvmerge_string += " {0} --language 0:{1} ".format(comp_str, key1)
+                count = count + 1
+                mkvmerge_string += " {0} --language 0:{1}".format(comp_str, key1)
                 # Add sub titles (right now, only if signs/songs is set)
+                if check_signs_songs:
+                    if count == 1:
+                        # not sure if I should make signs and songs forced here with --forced-track 0:true
+                        mkvmerge_string += " --track-name 0:\"Signs & Songs\""
                 # Add sub file
+                mkvmerge_string += " {}".format(os.path.join(dest, val))
+            count = 0
 
         print(mkvmerge_string)
 
