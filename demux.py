@@ -14,7 +14,7 @@ def demux(eac3to_cmd, short_name, source, dest):
         # also can't get it to work normally so going to concat into one string
         cmd = eac3to_cmd + " \"" + source + "\"" + " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
         with open(os.devnull, "w") as f:
-            proc = subprocess.run(cmd, shell=True, check=True, stderr=f)
+            subprocess.run(cmd, shell=True, check=True, stderr=f)
     except subprocess.CalledProcessError as ex:
         print(ex)
         print("Eac3to error on source")
@@ -35,7 +35,7 @@ def demux(eac3to_cmd, short_name, source, dest):
     if "-" in range_playlist:
         beg, last = range_playlist.split("-")
     else:
-        beg, last = 1,1
+        beg, last = 1, 1
 
     print("If PCM is present, convert PCM to FLAC? (y/n)")
     pcm_to_flac_ans = input()
@@ -51,8 +51,12 @@ def demux(eac3to_cmd, short_name, source, dest):
     # Loop eac3to
     for i in range(int(beg), int(last) + 1):
         cmd = eac3to_cmd + " \"" + source + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
-        with open(os.devnull, "w") as f:
-            proc = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=f)
+        try:
+            with open(os.devnull, "w") as f:
+                proc = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=f)
+        except subprocess.CalledProcessError as ex:
+            print(ex)
+            sys.exit(1)
 
         str_output = proc.stdout.decode()
 
@@ -101,16 +105,21 @@ def demux(eac3to_cmd, short_name, source, dest):
                 channels = match.group(2)
 
                 if convert_all_to_flac:
-                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(country_code) + ".flac"
+                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
+                        country_code) + ".flac"
                 elif "PCM" in track_type:
                     if pcm_to_flac_ans == "y":
-                        to_add = "aud" + "_" + short_name + start_num + "_" + channels + "_" + "".join(country_code) + ".flac"
+                        to_add = "aud" + "_" + short_name + start_num + "_" + channels + "_" + "".join(
+                            country_code) + ".flac"
                     else:
-                        to_add = "aud" + "_" + short_name + start_num + "_" + channels + "_" + "".join(country_code) + ".pcm"
+                        to_add = "aud" + "_" + short_name + start_num + "_" + channels + "_" + "".join(
+                            country_code) + ".pcm"
                 elif "TrueHD" in track_type:
-                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(country_code) + ".truehd"
+                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
+                        country_code) + ".truehd"
                 elif "DTS Master Audio" in track_type:
-                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(country_code) + ".dts"
+                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
+                        country_code) + ".dts"
             elif "PGS" in track_type:
                 pattern = re.compile("^.*?, ([a-zA-Z]*)")
                 match = pattern.match(track_type).group(1)
@@ -138,7 +147,7 @@ def demux(eac3to_cmd, short_name, source, dest):
 
         try:
             with open(os.devnull, "w") as f:
-                proc = subprocess.run(eac3to_cmd_execute, shell=True, check=True, stderr=f)
+                subprocess.run(eac3to_cmd_execute, shell=True, check=True, stderr=f)
         except subprocess.CalledProcessError as ex:
             print(ex)
             print("Eac3to error when demuxing")

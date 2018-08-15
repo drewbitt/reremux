@@ -84,9 +84,8 @@ if not args.mux_only:
         # just gonna assume mkvmerge is installed in a normal way and not create a passed var for its location
         merge.mux(short_name, series_name, os.path.normpath(dest))
 else:
-    print("Input short name for all files (i.e. in the filename, type_shortNameIsHere_*.ext")
+    print("Input short name for all files (i.e. in the filename, type_shortNameIsHere_*.ext)")
     short_name = input()
     print("Input name you want to name the series/movie")
     series_name = input()
     merge.mux(short_name, series_name, os.path.normpath(dest))
-

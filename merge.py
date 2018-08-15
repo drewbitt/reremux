@@ -14,7 +14,7 @@ def mux(short_name, series_name, dest):
         # didn't know about python 3s use of run over call
         # also can't get it to work normally so going to concat into one string
         with open(os.devnull, "w") as f:
-            proc = subprocess.run(["mkvmerge", "-V"], check=True, stdout=f)
+            subprocess.run(["mkvmerge", "-V"], check=True, stdout=f)
     except subprocess.CalledProcessError as ex:
         print(ex)
         print("Mkvmerge error - may not have it installed")
@@ -54,9 +54,10 @@ def mux(short_name, series_name, dest):
 
     # Actually this a huge fucking oversight - I'm never planning on specifying subtitle track names
 
-    print("For anime, auto-assign signs&songs and dialogue? (y/n)")
+    print("For anime, auto-assign signs&songs and dialogue (looking at size)? (y/n)")
     check_signs_songs = input() == "y"
 
+    all_mkvmerge_string = []
     for key, value in split_dict.items():
         if not pad_with_three:
             # pad with two instead of three. Yes, I know this is dumb, why even pad with three before?
@@ -83,7 +84,7 @@ def mux(short_name, series_name, dest):
                     sub_files_lang_dict[key1] = filepaths
             else:
                 # Still want the track ids to be in the right order
-                sub_files_lang_dict[key] = sorted(value)
+                sub_files_lang_dict[key1] = sorted(value1)
 
         # TODO: Always making English default right now. Ask for this
         # TODO: Also I guess ask for subtitle titles if not signs and songs
@@ -91,7 +92,8 @@ def mux(short_name, series_name, dest):
         #       care enough to add in 4k batching ability at the moment
 
         vid_resolution_pattern = re.compile(".*_([0-9]+(i|p))")
-        vid_resolution = vid_resolution_pattern.match(''.join([item for item in value if item.startswith("vid")])).group(1)
+        vid_resolution = vid_resolution_pattern.match(
+            ''.join([item for item in value if item.startswith("vid")])).group(1)
 
         # aud_channels_pattern = re.compile(".*([0-9]+\.[0-9])")
         # aud_channels = aud_channels_pattern.match(''.join([item for item in value if item.startswith("aud")])).group(1)
@@ -115,9 +117,11 @@ def mux(short_name, series_name, dest):
         mkvmerge_string += os.path.join(dest, mkvmerge_out_path)
 
         # Add chapters
-        mkvmerge_string += " --chapters {}".format(os.path.join(dest, ''.join([item for item in value if item.startswith("chapters")])))
+        mkvmerge_string += " --chapters {}".format(
+            os.path.join(dest, ''.join([item for item in value if item.startswith("chapters")])))
         # Add video
-        mkvmerge_string += " {0} {1}".format(comp_str, os.path.join(dest, ''.join([item for item in value if item.startswith("vid")])))
+        mkvmerge_string += " {0} {1}".format(comp_str, os.path.join(dest, ''.join(
+            [item for item in value if item.startswith("vid")])))
 
         # Add audio
 
@@ -151,6 +155,19 @@ def mux(short_name, series_name, dest):
             count = 0
 
         print(mkvmerge_string)
+        all_mkvmerge_string.append(mkvmerge_string)
+
+    # outside of for-loop
+    print("Continue to muxing? (y/n)")
+    if input() == "y":
+        for m_str in all_mkvmerge_string:
+            try:
+                with open(os.devnull, "w") as f:
+                    subprocess.run(m_str, check=True, stderr=f, shell=True)
+            except subprocess.CalledProcessError as ex:
+                print(ex)
+                sys.exit(1)
+    print("Done muxing")
 
 
 def make_dict_by_country(list_of_files):
