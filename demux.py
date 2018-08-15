@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import country_list
+from split_chapters import split_file
 
 
 def demux(eac3to_cmd, short_name, source, dest):
@@ -37,15 +38,16 @@ def demux(eac3to_cmd, short_name, source, dest):
         beg, last = 1, 1
 
     print("If PCM is present, convert PCM to FLAC? (y/n)")
-    pcm_to_flac_ans = input()
+    pcm_to_flac_ans = input() == "y"
 
     print("If 2.0 is the only audio present, convert to FLAC? (y/n)")
-    twoch_to_flac_ans = input()
+    twoch_to_flac_ans = input() == "y"
 
-    # Subtitle work
     # TODO: Notice that there are no chapters but the first playlist has chapters, then ask
     #       to split BD chapters based off of video times automatically - splitBDchapters plus vid times
-    # TODO: Ask to name chapters generic names
+
+    print("Name chapters generic names (Chapter 01, Chapter 02 etc.)? (y/n)")
+    name_chapters = input() == "y"
 
     # Loop eac3to
     for i in range(int(beg), int(last) + 1):
@@ -69,7 +71,7 @@ def demux(eac3to_cmd, short_name, source, dest):
         convert_all_to_flac = False
 
         # check if we need to convert everything to flac if user specified this check for 2.0
-        if twoch_to_flac_ans == "y":
+        if twoch_to_flac_ans:
             convert_all_to_flac = True
             for k in all_matches:
                 pattern = re.compile("[0-9]+\.[0-9] ")
@@ -77,8 +79,8 @@ def demux(eac3to_cmd, short_name, source, dest):
                     convert_all_to_flac = False
 
         # loop for each track
-        for counter, k in enumerate(all_matches):
-            line_num = int(k[0])
+        for k in all_matches:
+            track_num = int(k[0])
             track_type = k[1]
 
             ''' The layout is:
@@ -107,7 +109,7 @@ def demux(eac3to_cmd, short_name, source, dest):
                     to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
                         country_code) + ".flac"
                 elif "PCM" in track_type:
-                    if pcm_to_flac_ans == "y":
+                    if pcm_to_flac_ans:
                         to_add = "aud" + "_" + short_name + start_num + "_" + channels + "_" + "".join(
                             country_code) + ".flac"
                     else:
@@ -124,22 +126,27 @@ def demux(eac3to_cmd, short_name, source, dest):
                 match = pattern.match(track_type).group(1)
                 country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match]
 
-                to_add = "sub" + "_" + short_name + "_" + start_num + "_track" + str(counter) + "_" + "".join(
+                to_add = "sub" + "_" + short_name + "_" + start_num + "_track" + str(track_num) + "_" + "".join(
                     country_code) + ".sup"
-            outer_arr.append([line_num, to_add])
+            outer_arr.append([track_num, to_add])
 
         # Prepare eac3to outside of track loop but in playlist loop
 
+        # eac3to breaks with absolute paths AND doesnt have the ability to set a destination folder for muxing
+        # so this is gonna get messy
+
+        # Can't do different folder natively in eac3to it seems - need to change cwd
+        oldcdw = os.getcwd()
+        os.chdir(dest)
+
         # Write command
-        eac3to_cmd_execute = eac3to_cmd + " \"" + source + "\" \"" + str(i) + ")\" "
+        eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(os.path.abspath(source), start=dest) + "\" \"" + str(
+            i) + ")\" "
 
         for entry in outer_arr:
-            # Change to destination path
-            if dest != ".":
-                entry[1] = os.path.join(dest, entry[1])
             eac3to_cmd_execute += str(entry[0]) + ":" + entry[1] + " "
         eac3to_cmd_execute += " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
-
+        print(eac3to_cmd_execute)
         # Execute command
         try:
             with open(os.devnull, "w") as f:
@@ -147,9 +154,19 @@ def demux(eac3to_cmd, short_name, source, dest):
         except subprocess.CalledProcessError as ex:
             print(ex)
             print("Eac3to error when demuxing")
-            # probably should terminate but I guess we could skip by returning if wanted
-            # to continue to other playlists? will decide later
+            # probably should terminate here
             sys.exit(1)
 
+        # Now that chapter file has been created, add chapter titles if requested
+        if name_chapters:
+            for entry in outer_arr:
+                if entry[1].startswith("chapters"):
+                    split_file(entry[1], "", True, "")
+                    break  # should only be one chapter file but eh oh well
+
         # Start num is converted to a string to have padding of 0s
+        # Increase start num (i.e. episode number) by one every loop iteration
         if start_num.isnumeric(): start_num = str(int(start_num) + 1).rjust(3, "0")
+
+        # lazy hack for eac3to path issue
+        os.chdir(oldcdw)
