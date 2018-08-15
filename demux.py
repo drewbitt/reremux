@@ -31,7 +31,6 @@ def demux(eac3to_cmd, short_name, source, dest):
     # Remove space in case space was used for range
     range_playlist = range_playlist.replace(" ", "")
     # If input had "-", range, else just one playlist is specified
-    # Wrote this as a ternary but had problems with beg, last becoming lists instead of strings - didn't bother to fix
     if "-" in range_playlist:
         beg, last = range_playlist.split("-")
     else:
@@ -46,7 +45,7 @@ def demux(eac3to_cmd, short_name, source, dest):
     # Subtitle work
     # TODO: Notice that there are no chapters but the first playlist has chapters, then ask
     #       to split BD chapters based off of video times automatically - splitBDchapters plus vid times
-    # TODO: Ask to name subtitle tracks generic names
+    # TODO: Ask to name chapters generic names
 
     # Loop eac3to
     for i in range(int(beg), int(last) + 1):
@@ -141,10 +140,7 @@ def demux(eac3to_cmd, short_name, source, dest):
             eac3to_cmd_execute += str(entry[0]) + ":" + entry[1] + " "
         eac3to_cmd_execute += " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
 
-        print(eac3to_cmd_execute)
-
         # Execute command
-
         try:
             with open(os.devnull, "w") as f:
                 subprocess.run(eac3to_cmd_execute, shell=True, check=True, stderr=f)
@@ -156,4 +152,4 @@ def demux(eac3to_cmd, short_name, source, dest):
             sys.exit(1)
 
         # Start num is converted to a string to have padding of 0s
-        if (start_num.isnumeric()): start_num = str(int(start_num) + 1).rjust(3, "0")
+        if start_num.isnumeric(): start_num = str(int(start_num) + 1).rjust(3, "0")

@@ -9,3 +9,4 @@ Very specific to my use-case, so there's going to be some issues/to-dos, namely:
 * If eac3to can even do 4K, it still will name the files with h264 since I didn't put h264/h265 in the filename to mux with
 * Has English audio always as default
 * Has very limited testing so surely things will be broken
+* ``--mux-only` actually still requires a source AND it to be like `source dest --mux-only`.

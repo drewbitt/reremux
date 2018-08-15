@@ -17,7 +17,7 @@ def mux(short_name, series_name, dest):
             subprocess.run(["mkvmerge", "-V"], check=True, stdout=f)
     except subprocess.CalledProcessError as ex:
         print(ex)
-        print("Mkvmerge error - may not have it installed")
+        print("mkvmerge error - may not have it installed")
         sys.exit(1)
 
     # Reduce all files in destination to files with shortname
@@ -48,12 +48,6 @@ def mux(short_name, series_name, dest):
             pad_with_three = True
             break
 
-    # TODO: No idea how this implementation will work for more than 2 sub tracks in a language, like if there's
-    # an additional commentary sub track. Right now it will sort them by size fine, but won't be able to name
-    # them correctly since I don't know which is dialogue/commentary/whatever
-
-    # Actually this a huge fucking oversight - I'm never planning on specifying subtitle track names
-
     print("For anime, auto-assign signs&songs and dialogue (looking at size)? (y/n)")
     check_signs_songs = input() == "y"
 
@@ -82,6 +76,8 @@ def mux(short_name, series_name, dest):
                     filepaths.sort(key=lambda filename: filename[1], reverse=False)
                     filepaths = [item[0] for item in filepaths]
                     sub_files_lang_dict[key1] = filepaths
+                else:
+                    print("Did not find two or more sub tracks in {} language".format(key1))
             else:
                 # Still want the track ids to be in the right order
                 sub_files_lang_dict[key1] = sorted(value1)
