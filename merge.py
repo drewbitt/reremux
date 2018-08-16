@@ -71,6 +71,7 @@ def mux(short_name, series_name, dest):
                     filepaths = []
                     for subf in value1:
                         # append size to a new list to sort by size
+                        subf = os.path.join(dest, subf)
                         filepaths.append([subf, os.path.getsize(subf)])
                     # smallest in the front
                     filepaths.sort(key=lambda filename: filename[1], reverse=False)
@@ -147,7 +148,7 @@ def mux(short_name, series_name, dest):
                         # not sure if I should make signs and songs forced here with --forced-track 0:true
                         mkvmerge_string += " --track-name 0:\"Signs & Songs\""
                 # Add sub file
-                mkvmerge_string += " {}".format(os.path.join(dest, val))
+                mkvmerge_string += " {}".format(val)
             count = 0
 
         print(mkvmerge_string)
