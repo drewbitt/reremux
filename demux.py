@@ -110,10 +110,10 @@ def demux(eac3to_cmd, short_name, source, dest):
                         country_code) + ".flac"
                 elif "PCM" in track_type:
                     if pcm_to_flac_ans:
-                        to_add = "aud" + "_" + short_name + start_num + "_" + channels + "_" + "".join(
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
                             country_code) + ".flac"
                     else:
-                        to_add = "aud" + "_" + short_name + start_num + "_" + channels + "_" + "".join(
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
                             country_code) + ".pcm"
                 elif "TrueHD" in track_type:
                     to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
@@ -135,12 +135,13 @@ def demux(eac3to_cmd, short_name, source, dest):
         # eac3to breaks with absolute paths AND doesnt have the ability to set a destination folder for muxing
         # so this is gonna get messy
 
+        source = os.path.abspath(source)
         # Can't do different folder natively in eac3to it seems - need to change cwd
         oldcdw = os.getcwd()
         os.chdir(dest)
 
         # Write command
-        eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(os.path.abspath(source), start=dest) + "\" \"" + str(
+        eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
             i) + ")\" "
 
         for entry in outer_arr:
