@@ -10,4 +10,4 @@ Very specific to my use-case, so there's going to be some issues/to-dos, namely:
 * Has English audio always as default
 * Has very limited testing so surely things will be broken
 * ``--mux-only` actually still requires a source AND it to be like `source dest --mux-only`.
-* Error catching or notifying is bad. What is wrote doesn't work and most isn't wrote. Doesn't make it very user-friendly for the not tech-savvy.
+* Error catching or notifying is bad. I can't help this easily since eac3to usually returns non-zero return codes for errors but does not in wine. An alternative is to parse for known error strings.

@@ -19,33 +19,41 @@ dest = os.path.normpath(args.dest)
 pattern = re.compile(r".* - ([0-9]+) \[.*")
 
 all_files = os.listdir(dest)
-all_files_ep_only = list(filter(pattern.match, all_files))
 
 with open(args.file) as list_file:
-
+    episode_map = {}
     for line in list_file:
-        line.replace(" ", "")
+        line = line.replace(" ", "").rstrip()
         if line != "":
             orig_ep_num, new_ep_num = line.split("->")
+            episode_map[orig_ep_num] = new_ep_num
 
-            for num, file in enumerate(all_files):
-                file_ep_num_re = pattern.match(file)
+    for num, file1 in enumerate(all_files):
+        file_ep_num_re = pattern.match(file1)
 
-                if file_ep_num_re is not None:
-                    file_ep_num = file_ep_num_re.group(1)
-                    if file_ep_num == orig_ep_num:
-                        # this is the file I need to rename
-                        # check and see if it can be a ez rename
-                        if not any(orig_ep_num in s for s in all_files_ep_only):
-                            print("ez rename")
-                            new_name = re.sub(file, r"g<1>", new_ep_num)
-                            # would move the file here instead of printing
-                            print(new_name)
+        if file_ep_num_re is not None:
+            print("\n" + file1 + "\n")
+            file_ep_num = file_ep_num_re.group(1)
+            if file_ep_num in episode_map:
+                # this is the file I need to rename
 
-                            # adjust lists for future iterations
-                            all_files[num] = new_name
-                            all_files_ep_only.remove(orig_ep_num)
-                            all_files_ep_only.append(new_ep_num)
-                        else:
-                            print("not ez rename")
+                def calc_rename(str1, new_ep_num):
+                    return re.sub(r"(.* - )([0-9]+)( \[.*)", r"\1 {} \3".format(new_ep_num), str1)
 
+                # check and see if it can be a ez rename
+                if not new_ep_num in episode_map:
+                    print("ez rename")
+                    new_name = calc_rename(file1, new_ep_num)
+                    print("Moving {0} to {1}".format(file1, new_name))
+                    # move(file1, new_name)
+                else:
+                    print("not ez rename")
+                    # rename the file to be this now
+                    new_file1 = file1 + "z1"
+
+                    #move(file1, new_file1)
+                    print("Renaming {0} to {1}".format(file1, new_file1))
+
+                    new_name = calc_rename(new_file1, new_ep_num)
+
+                    print("Moving {0} to {1}".format(new_file1, new_name))
