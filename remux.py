@@ -13,12 +13,10 @@ eac3to_cmd = "wine ~/Documents/Scripts/eac3to/eac3to.exe"
 # Test eac3to
 try:
     with open(os.devnull, "w") as f:
-        proc = subprocess.call([eac3to_cmd, "2>/dev/null"], shell=True, stdout=f, stderr=f)
-        if proc != 0:
-            print("Returned error on user-defined eac3to & wine path")
-            sys.exit(1)
+        subprocess.run([eac3to_cmd, "2>/dev/null"], shell=True, check=True, stdout=f, stderr=f)
 except subprocess.CalledProcessError as ex:
     print(ex)
+    print("Error with wine and eac3to path")
     sys.exit(1)
 
 # Define what the program does
@@ -78,9 +76,9 @@ if not args.mux_only:
 
     print("Done demuxing")
     print("Continue to muxing? (y/n")
-    muxing_continue = str(input())
+    muxing_continue = input() == "y"
 
-    if muxing_continue == "y":
+    if muxing_continue:
         # just gonna assume mkvmerge is installed in a normal way and not create a passed var for its location
         merge.mux(short_name, series_name, os.path.normpath(dest))
 else:
