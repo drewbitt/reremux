@@ -136,6 +136,7 @@ def demux(eac3to_cmd, short_name, source, dest):
         # so this is gonna get messy
 
         source = os.path.abspath(source)
+        dest = os.path.abspath(dest)
         # Can't do different folder natively in eac3to it seems - need to change cwd
         oldcdw = os.getcwd()
         os.chdir(dest)
