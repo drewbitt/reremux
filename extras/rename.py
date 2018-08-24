@@ -35,6 +35,10 @@ def find_file(episode_num, z1=False):
 
     return "".join([matching_regex.match(i).group(0) for i in os.listdir(dest) if matching_regex.match(i)])
 
+def to_d(vr):
+    # add dest to path
+    return os.path.join(dest, vr)
+
 # Loops
 with open(args.file) as list_file:
     episode_map = {}
@@ -67,7 +71,9 @@ with open(args.file) as list_file:
                 sys.exit(1)
 
             print("Renaming {0} to {1}".format(rename_found_file, rename_found_file + "z1"))
+            move(to_d(rename_found_file), to_d(rename_found_file + "z1"))
             print("Moving {0} to {1}".format(first_found_file, rename_found_file))
+            move(to_d(first_found_file), to_d(rename_found_file))
         else:
             # Easier rename - the one I'm renaming to doesn't exist already
             # prioritize if it ends in "z1"
@@ -75,3 +81,4 @@ with open(args.file) as list_file:
             # compute new name
             new_name = calc_rename(found_file, episode_map[key]).rstrip("z1")
             print("Moving {0} to {1}".format(found_file, new_name))
+            move(to_d(found_file), to_d(new_name))
