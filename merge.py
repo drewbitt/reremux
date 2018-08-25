@@ -7,7 +7,7 @@ from collections import defaultdict
 
 
 def create_episode_dict(short_name, dest):
- """ Separates each episode number into its own entry in the split_dict """
+    """ Separates each episode number into its own entry in the split_dict """
 
     # Reduce all files in destination to files with shortname
     pattern = "(vid|chapters|aud|sub)_{0}_((?!Log).)*$".format(short_name)
@@ -208,7 +208,7 @@ def make_dict_by_country(list_of_files):
     files_lang_dict = defaultdict(list)
 
     for file in list_of_files:
-        pattern = re.compile(".*([a-z]{2})\.")
+        pattern = re.compile(r".*([a-z]{2})\.")
         country = pattern.match(file).group(1)
         files_lang_dict[country].append(file)
     return files_lang_dict
