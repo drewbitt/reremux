@@ -7,35 +7,15 @@ import country_list
 from split_chapters import split_file
 
 
-def demux(eac3to_cmd, short_name, source, dest):
-    """ Guided demux using eac3to """
-
-    try:
-        # didn't know about python 3s use of run over call
-        # also can't get it to work normally so going to concat into one string
-        cmd = eac3to_cmd + " \"" + source + "\"" + " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
-        with open(os.devnull, "w") as f:
-            subprocess.run(cmd, shell=True, check=True, stderr=f)
-    except subprocess.CalledProcessError as ex:
-        print(ex)
-        print("Eac3to error on source")
-        sys.exit(1)
-
+def ask_stuff():
     print("Choose the number / range of playlists to demux (i.e. 1 or 2-10)")
     range_playlist = input()
 
     print("Choose the number of the episode to start numbering at")
     start_num = input().rjust(3, "0")
 
-    # Split for range
-
-    # Remove space in case space was used for range
-    range_playlist = range_playlist.replace(" ", "")
-    # If input had "-", range, else just one playlist is specified
-    if "-" in range_playlist:
-        beg, last = range_playlist.split("-")
-    else:
-        beg, last = 1, 1
+    print("Go off of numbering from the mpls order (y) or m2ts order (n)? (y/n)")
+    playlist_ordering = input() == "y"
 
     print("If PCM is present, convert PCM to FLAC? (y/n)")
     pcm_to_flac_ans = input() == "y"
@@ -49,16 +29,64 @@ def demux(eac3to_cmd, short_name, source, dest):
     print("Name chapters generic names (Chapter 01, Chapter 02 etc.)? (y/n)")
     name_chapters = input() == "y"
 
-    # Loop eac3to
-    for i in range(int(beg), int(last) + 1):
-        cmd = eac3to_cmd + " \"" + source + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
-        try:
-            with open(os.devnull, "w") as f:
-                proc = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=f)
-        except subprocess.CalledProcessError as ex:
-            print(ex)
-            sys.exit(1)
+    return range_playlist, start_num, playlist_ordering, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters
 
+
+def calculate_range(range_playlist):
+    # Remove space in case space was used for range
+    range_playlist = range_playlist.replace(" ", "")
+    # If input had "-", range, else just one playlist is specified
+    if "-" in range_playlist:
+        beg, last = range_playlist.split("-")
+    else:
+        beg, last = 1, 1
+    return int(beg), int(last)
+
+
+def run_shell(cmd, stdout1=None):
+    try:
+        with open(os.devnull, "w") as f:
+            proc = subprocess.run(cmd, shell=True, check=True, stderr=f, stdout=stdout1)
+    except subprocess.CalledProcessError as ex:
+        print(ex)
+        sys.exit(1)
+    return proc
+
+
+def check_twoch_flac(all_matches):
+    convert_all_to_flac = True
+    for k in all_matches:
+        pattern = re.compile("[0-9]+\.[0-9] ")
+        if pattern.search(k[1]) is not None and pattern.search(k[1]).group(0).strip() != "2.0":
+            convert_all_to_flac = False
+    return convert_all_to_flac
+
+
+def name_chaps(outer_arr):
+    for entry in outer_arr:
+        if entry[1].startswith("chapters"):
+            split_file(entry[1], "", True, "")
+            break  # should only be one chapter file but eh oh well
+
+
+def demux(eac3to_cmd, short_name, source, dest):
+    """ Guided demux using eac3to """
+
+    cmd = eac3to_cmd + " \"" + source + "\"" + " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+    run_shell(cmd)
+
+    # Prompt the user for various things (guided remux)
+    range_playlist, start_num, playlist_ordering, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters = ask_stuff()
+
+    # Split range and calulate it for loop from input
+    beg, last = calculate_range(range_playlist)
+
+    # Loop eac3to
+    for i in range(beg, last + 1):
+        cmd = eac3to_cmd + " \"" + source + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+        proc = run_shell(cmd, subprocess.PIPE)
+
+        # String generated from eac3to command
         str_output = proc.stdout.decode()
 
         # Reduce the output down to what I need (the tracks)
@@ -68,15 +96,10 @@ def demux(eac3to_cmd, short_name, source, dest):
         # outer array that holds all filename information after looping for each track
         outer_arr = []
 
-        convert_all_to_flac = False
-
         # check if we need to convert everything to flac if user specified this check for 2.0
+        convert_all_to_flac = False
         if twoch_to_flac_ans:
-            convert_all_to_flac = True
-            for k in all_matches:
-                pattern = re.compile("[0-9]+\.[0-9] ")
-                if pattern.search(k[1]) is not None and pattern.search(k[1]).group(0).strip() != "2.0":
-                    convert_all_to_flac = False
+            convert_all_to_flac = check_twoch_flac(all_matches)
 
         # loop for each track
         for k in all_matches:
@@ -144,27 +167,17 @@ def demux(eac3to_cmd, short_name, source, dest):
         # Write command
         eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
             i) + ")\" "
-
         for entry in outer_arr:
             eac3to_cmd_execute += str(entry[0]) + ":" + entry[1] + " "
         eac3to_cmd_execute += " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+
+        # Print and execute command
         print(eac3to_cmd_execute)
-        # Execute command
-        try:
-            with open(os.devnull, "w") as f:
-                subprocess.run(eac3to_cmd_execute, shell=True, check=True, stderr=f)
-        except subprocess.CalledProcessError as ex:
-            print(ex)
-            print("Eac3to error when demuxing")
-            # probably should terminate here
-            sys.exit(1)
+        run_shell(eac3to_cmd_execute)
 
         # Now that chapter file has been created, add chapter titles if requested
         if name_chapters:
-            for entry in outer_arr:
-                if entry[1].startswith("chapters"):
-                    split_file(entry[1], "", True, "")
-                    break  # should only be one chapter file but eh oh well
+            name_chaps(outer_arr)
 
         # Start num is converted to a string to have padding of 0s
         # Increase start num (i.e. episode number) by one every loop iteration
