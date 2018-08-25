@@ -44,7 +44,8 @@ def run_shell(cmd, stdout1=None):
 def mkvmerge_string_dicts(sub_files_lang_dict, aud_files_lang_dict, check_signs_songs, mkvmerge_string, comp_str, dest):
     """ Adds audio and subs to the mkvmerge_string """
 
-    # Then do English first for muxing string. Automatically is default
+    # Audio first
+    # Do english first in the muxing string
     for val in sorted(aud_files_lang_dict["en"]):
         mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, "en", os.path.join(dest, val))
 
@@ -54,20 +55,19 @@ def mkvmerge_string_dicts(sub_files_lang_dict, aud_files_lang_dict, check_signs_
             for file in sorted(value1):
                 mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, key1, os.path.join(dest, file))
 
-    # Add subs
-    count = 0
+    # Subtitles
     for key1, value1 in sub_files_lang_dict.items():
-        for val in value1:
-            count = count + 1
+        for count, val in enumerate(value1, 1):
             mkvmerge_string += " {0} --language 0:{1}".format(comp_str, key1)
-            # Add sub titles (right now, only if signs/songs is set)
+
+            # Add sub track names if signs/songs is set
             if check_signs_songs:
-                if count == 1:
+                # Only do signs & songs for English for now
+                if count == 1 and key1 == "en":
                     # not sure if I should make signs and songs forced here with --forced-track 0:true
                     mkvmerge_string += " --track-name 0:\"Signs & Songs\""
             # Add sub file
             mkvmerge_string += " {}".format(val)
-        count = 0
 
     return mkvmerge_string
 
