@@ -8,6 +8,7 @@ from split_chapters import split_file
 
 
 def ask_stuff():
+    """ Ask for various settings (guided remux) """
 
     print("Specify and demux playlists (y) or all m2ts in the first playlist (n)? (y/n)")
     playlist_ordering = input() == "y"
@@ -37,7 +38,7 @@ def ask_stuff():
 
 
 def calculate_range(range_playlist):
-    # Remove space in case space was used for range
+    """ From user input, get a range of the playlists to loop over """
     range_playlist = range_playlist.replace(" ", "")
     # If input had "-", range, else just one playlist is specified
     if "-" in range_playlist:
@@ -48,6 +49,7 @@ def calculate_range(range_playlist):
 
 
 def run_shell(cmd, stdout1=None, stdin1=None, stderr1="default"):
+    """ Run given cmd in the system using subprocess.run and return the CompletedProcess """
     try:
         with open(os.devnull, "w") as f:
             if stderr1 == "default":
@@ -60,6 +62,7 @@ def run_shell(cmd, stdout1=None, stdin1=None, stderr1="default"):
 
 
 def check_twoch_flac(all_matches):
+    """ Calculate if everything is two channels, and if so, set that everything be converted to FLAC """
     convert_all_to_flac = True
     for k in all_matches:
         pattern = re.compile(r"[0-9]+\.[0-9] ")
@@ -69,6 +72,7 @@ def check_twoch_flac(all_matches):
 
 
 def name_chaps(outer_arr):
+    """ Calls split_chapters to add generic names to chapters """
     for entry in outer_arr:
         if entry[1].startswith("chapters"):
             split_file(entry[1], "", True, "")
@@ -76,6 +80,9 @@ def name_chaps(outer_arr):
 
 
 def calculate_m2ts_order(strd):
+    """ Gets m2ts order (looking at the first playlist) and muxes their respective playlists in the new order,
+        instead of the order of playlists """
+
     # Get first playlist [01+02+etc].m2ts ordering
     pattern = re.compile(r"\[([0-9\+]+)\].m2ts")
     match = pattern.search(strd)
@@ -88,11 +95,23 @@ def calculate_m2ts_order(strd):
 
         return_arr = []
         for i in combo:
+            # find the playlist for the m2ts
             pattern = re.compile(r"([0-9]+)\).*{}\.m2ts.*".format(i.zfill(5)))
             match = pattern.search(strd)
             if match:
                 return_arr.append(match.group(1))
     return return_arr
+
+def change_dirs(source, dest):
+    """ Fix for eac3to to save files in an alternate destination. Also sets absolute paths so that we can get relative
+        paths later, needed for eac3to afaik """
+    source = os.path.abspath(source)
+    dest = os.path.abspath(dest)
+    # Can't do different folder natively in eac3to it seems - need to change cwd
+    oldcdw = os.getcwd()
+    os.chdir(dest)
+
+    return source, dest, oldcdw
 
 
 def demux(eac3to_cmd, short_name, source, dest):
@@ -112,19 +131,18 @@ def demux(eac3to_cmd, short_name, source, dest):
     else:
         order = calculate_m2ts_order(proc.stdout.decode())
 
+    # Because eac3to and paths sucks, change cdw
+    source, dest, oldcdw = change_dirs(source, dest)
+
     # Loop eac3to
     for i in order:
-        cmd = eac3to_cmd + " \"" + source + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
-        proc1 = run_shell(cmd, stdout1=subprocess.PIPE, stdin1=proc.stdout)
-
-        # String generated from eac3to command
-        str_output = proc1.stdout.decode()
-        print(str_output)
+        cmd = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+        proc = run_shell(cmd, stdout1=subprocess.PIPE)
+        str_output = proc.stdout.decode()
 
         # Reduce the output down to what I need (the tracks)
         pattern = re.compile(r"([1-9])+: (.*)")
         all_matches = pattern.findall(str_output)
-        print(all_matches)
 
         # outer array that holds all filename information after looping for each track
         outer_arr = []
@@ -188,15 +206,6 @@ def demux(eac3to_cmd, short_name, source, dest):
 
         # Prepare eac3to outside of track loop but in playlist loop
 
-        # eac3to breaks with absolute paths AND doesnt have the ability to set a destination folder for muxing
-        # so this is gonna get messy
-
-        source = os.path.abspath(source)
-        dest = os.path.abspath(dest)
-        # Can't do different folder natively in eac3to it seems - need to change cwd
-        oldcdw = os.getcwd()
-        os.chdir(dest)
-
         # Write command
         eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
             i) + ")\" "
@@ -207,7 +216,6 @@ def demux(eac3to_cmd, short_name, source, dest):
         # Print and execute command
         print(eac3to_cmd_execute)
         run_shell(eac3to_cmd_execute, stderr1=None)
-        sys.exit(1)
 
         # Now that chapter file has been created, add chapter titles if requested
         if name_chapters:
@@ -216,6 +224,5 @@ def demux(eac3to_cmd, short_name, source, dest):
         # Start num is converted to a string to have padding of 0s
         # Increase start num (i.e. episode number) by one every loop iteration
         if start_num.isnumeric(): start_num = str(int(start_num) + 1).rjust(3, "0")
-
-        # lazy hack for eac3to path issue
-        os.chdir(oldcdw)
+    # lazy hack for eac3to path issue
+    os.chdir(oldcdw)
