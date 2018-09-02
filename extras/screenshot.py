@@ -18,7 +18,7 @@ def open_clip(path: str) -> vs.VideoNode:
 
 def get_frame_number(clip):
     length = len(open_clip(clip))
-    return random.randint(length/4, (length/4)*3)
+    return random.randint(int(length/4), int(length/4)*3)
 
 def delete_all(save_path):
     """ Delete all files (and the save_path folder) in save_path"""
