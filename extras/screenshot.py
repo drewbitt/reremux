@@ -51,5 +51,4 @@ def screenshot(file, dest):
     print('Writing {:s}/{:d}.jpeg'.format(save_path, frame))
     clip.get_frame(frame)
 
-    print(clip)
     return save_path, frame
