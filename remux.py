@@ -75,7 +75,7 @@ if not args.mux_only:
     # and the files that exist in the destination directory.
 
     print("Done demuxing")
-    print("Continue to muxing? (y/n")
+    print("Continue to muxing? (y/n)")
     muxing_continue = input() == "y"
 
     if muxing_continue:

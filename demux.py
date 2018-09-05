@@ -45,7 +45,7 @@ def calculate_range(range_playlist):
         beg, last = range_playlist.split("-")
     else:
         beg, last = 1, 1
-    return int(beg), int(last)
+    return int(beg), int(last)+1
 
 
 def run_shell(cmd, stdout1=None, stdin1=None, stderr1="default"):
