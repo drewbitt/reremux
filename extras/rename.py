@@ -25,10 +25,11 @@ def rename(dest, file = False, dic=False):
 
     def find_file(episode_num, z1=False):
         # Find file with passed episode number in dest directory
-        matching_regex = re.compile(r".*- {} \[.*".format(episode_num))
-        if z1 and len([matching_regex.match(i) for i in os.listdir(dest) if matching_regex.match(i)]) > 1:
+        matching_regex = re.compile(r".*- {} \[.*\.mkv$".format(episode_num))
+        matching_regex_z1 = re.compile(r".*- {} \[.*\.mkvz1$".format(episode_num))
+        if z1 and [matching_regex_z1.match(i) for i in os.listdir(dest) if matching_regex_z1.match(i)]:
             # found a z1 for the episode number
-            matching_regex = re.compile(r".*- {} \[.*z1$".format(episode_num))
+            matching_regex = matching_regex_z1
 
         return "".join([matching_regex.match(i).group(0) for i in os.listdir(dest) if matching_regex.match(i)])
 
@@ -62,7 +63,7 @@ def rename(dest, file = False, dic=False):
             # first, have to find it
             rename_found_file = find_file(episode_map[key])
             # filename of episode I need to rename
-            first_found_file = find_file(key)
+            first_found_file = find_file(key, z1=True)
 
             if not rename_found_file:
                 print("Did not find an episode for {}".format(episode_map[key]))
