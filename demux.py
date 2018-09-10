@@ -10,10 +10,10 @@ from split_chapters import split_file
 def ask_stuff():
     """ Ask for various settings (guided remux) """
 
-    print("Specify and demux playlists (y) or all m2ts in the first playlist (n)? (y/n)")
-    playlist_ordering = input() == "y"
+    print("1) Specify and demux playlists 2) Demux in order of m2ts in first playlist 3) Demux based on m2ts order ? (1/2/3)")
+    playlist_ordering = int(input()[0])
 
-    if playlist_ordering:
+    if playlist_ordering == 1:
         print("Choose the number / range of playlists to demux (i.e. 1 or 2-10)")
         range_playlist = input()
     else:
@@ -102,6 +102,24 @@ def calculate_m2ts_order(strd):
                 return_arr.append(match.group(1))
     return return_arr
 
+def overall_m2ts_order(strd):
+    """ Gets m2ts order by looking at all the m2ts in the playlists and determining the order. Pretty much the same as calculate_m2ts_order
+    but works when the first playlist doesn't have the order as well. May be able to get rid of calculate_m2ts_order.
+    TODO: This would not work for any playlists with multiple m2ts right now"""
+
+    # get all the m2ts in the playlists
+    pattern = re.compile(r"([0-9]+).*\.mpls, ([0-9]+)\.m2ts")
+    match = pattern.findall(strd)
+
+    return_arr = []
+    if match:
+        match_m2ts_num = [m[1] for m in match]
+
+        for mat in sorted(match_m2ts_num):
+            return_arr.append(''.join([m[0] for m in match if m[1] == mat]))
+
+        return return_arr
+
 def change_dirs(source, dest):
     """ Fix for eac3to to save files in an alternate destination. Also sets absolute paths so that we can get relative
         paths later, needed for eac3to afaik """
@@ -124,12 +142,14 @@ def demux(eac3to_cmd, short_name, source, dest):
     # Prompt the user for various things (guided remux)
     range_playlist, start_num, playlist_ordering, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters = ask_stuff()
 
-    if playlist_ordering:
+    if playlist_ordering == 1:
         # Split range and calulate it for loop from input
         beg, last = calculate_range(range_playlist)
         order = range(beg, last)
-    else:
+    elif playlist_ordering == 2:
         order = calculate_m2ts_order(proc.stdout.decode())
+    elif playlist_ordering == 3:
+        order = overall_m2ts_order(proc.stdout.decode())
 
     # Because eac3to and paths sucks, change cdw
     source, dest, oldcdw = change_dirs(source, dest)
@@ -194,7 +214,7 @@ def demux(eac3to_cmd, short_name, source, dest):
                         country_code) + ".truehd"
                 elif "DTS Master Audio" in track_type:
                     to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
-                        country_code) + ".dts"
+                        country_code) + ".dtsma"
             elif "PGS" in track_type:
                 pattern = re.compile(r"^.*?, ([a-zA-Z]*)")
                 match = pattern.match(track_type).group(1)

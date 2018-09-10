@@ -166,7 +166,7 @@ def mux(short_name, series_name, dest):
             mkvmerge_out_path += "TrueHD"
         elif any(".flac" in s for s in value):
             mkvmerge_out_path += "FLAC"
-        elif any(".dts" in s for s in value):
+        elif any(".dtsma" in s for s in value):
             mkvmerge_out_path += "DTS-HDMA"
         if any(".pcm" in s for s in value):
             mkvmerge_out_path += "PCM"
