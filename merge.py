@@ -67,7 +67,7 @@ def mkvmerge_string_dicts(sub_files_lang_dict, aud_files_lang_dict, check_signs_
                     # not sure if I should make signs and songs forced here with --forced-track 0:true
                     mkvmerge_string += " --track-name 0:\"Signs & Songs\""
             # Add sub file
-            mkvmerge_string += " {}".format(val)
+            mkvmerge_string += " {}".format(os.path.join(dest, val))
 
     return mkvmerge_string
 
