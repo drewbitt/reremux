@@ -194,6 +194,11 @@ def mux(short_name, series_name, dest):
         all_mkvmerge_string.append(mkvmerge_string)
 
     # outside of for-loop
+
+    if not all_mkvmerge_string:
+        print("Error: Found nothing to mux. Dest: {}".format(dest))
+        sys.exit(1)
+
     print("Continue to muxing? (y/n)")
 
     # Run actual muxing command
