@@ -83,8 +83,7 @@ def compute_signs_and_songs(check_signs_songs, sub_files_lang_dict, dest):
                 filepaths = []
                 for subf in value1:
                     # append size to a new list to sort by size
-                    subf = os.path.join(dest, subf)
-                    filepaths.append([subf, os.path.getsize(subf)])
+                    filepaths.append([subf, os.path.getsize(os.path.join(dest, subf))])
                 # smallest in the front
                 filepaths.sort(key=lambda filename: filename[1], reverse=False)
                 filepaths = [item[0] for item in filepaths]
