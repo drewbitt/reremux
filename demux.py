@@ -43,8 +43,14 @@ def calculate_range(range_playlist):
     # If input had "-", range, else just one playlist is specified
     if "-" in range_playlist:
         beg, last = range_playlist.split("-")
+    elif "," in range_playlist:
+        # TODO: Allow for list of playlists, just requires a rewrite to be from a loop
+        #       that is strictly a range, to a loop that is either a range or a for-loop over a list
+        print("Currently not supporting not single playlists or ranges")
+        sys.exit(1)
     else:
-        beg, last = 1, 1
+        beg, last = range_playlist, range_playlist
+
     return int(beg), int(last)+1
 
 
