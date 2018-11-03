@@ -5,12 +5,14 @@ import os
 import re
 import country_list
 from split_chapters import split_file
+from demux_m2ts import demux_m2ts
 
 
 def ask_stuff():
     """ Ask for various settings (guided remux) """
 
-    print("1) Specify and demux playlists 2) Demux in order of m2ts in first playlist 3) Demux based on m2ts order ? (1/2/3)")
+    # May want to do some smart asking (looking at eac3to output) to reduce potential choices
+    print('1) Specify and demux playlists 2) Demux in order of m2ts in first playlist 3) Demux based on m2ts order (using playlists) 4) Demux based on the m2ts in the first playlist (directly) ?')
     playlist_ordering = int(input()[0])
 
     if playlist_ordering == 1:
@@ -27,9 +29,6 @@ def ask_stuff():
 
     print("If 2.0 is the only audio present, convert to FLAC? (y/n)")
     twoch_to_flac_ans = input() == "y"
-
-    # TODO: Notice that there are no chapters but the first playlist has chapters, then ask
-    #       to split BD chapters based off of video times automatically - splitBDchapters plus vid times
 
     print("Name chapters generic names (Chapter 01, Chapter 02 etc.)? (y/n)")
     name_chapters = input() == "y"
@@ -106,7 +105,10 @@ def calculate_m2ts_order(strd):
             match = pattern.search(strd)
             if match:
                 return_arr.append(match.group(1))
-    return return_arr
+        return return_arr
+    print("Did not find m2ts in the first playlist, exiting")
+    sys.exit(1)
+
 
 def overall_m2ts_order(strd):
     """ Gets m2ts order by looking at all the m2ts in the playlists and determining the order. Pretty much the same as calculate_m2ts_order
@@ -123,8 +125,9 @@ def overall_m2ts_order(strd):
 
         for mat in sorted(match_m2ts_num):
             return_arr.append(''.join([m[0] for m in match if m[1] == mat]))
-
         return return_arr
+    print("Error getting overall m2ts order")
+    sys.exit(1)
 
 def change_dirs(source, dest):
     """ Fix for eac3to to save files in an alternate destination. Also sets absolute paths so that we can get relative
@@ -145,6 +148,9 @@ def demux(eac3to_cmd, short_name, source, dest):
     proc = run_shell(cmd, stdout1=subprocess.PIPE)
     print(proc.stdout.decode())
 
+    # Because eac3to and paths sucks, change cdw
+    source, dest, oldcdw = change_dirs(source, dest)
+
     # Prompt the user for various things (guided remux)
     range_playlist, start_num, playlist_ordering, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters = ask_stuff()
 
@@ -156,9 +162,8 @@ def demux(eac3to_cmd, short_name, source, dest):
         order = calculate_m2ts_order(proc.stdout.decode())
     elif playlist_ordering == 3:
         order = overall_m2ts_order(proc.stdout.decode())
-
-    # Because eac3to and paths sucks, change cdw
-    source, dest, oldcdw = change_dirs(source, dest)
+    elif playlist_ordering == 4:
+        return demux_m2ts(proc.stdout.decode(), source, dest, start_num, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters)
 
     # Loop eac3to
     for i in order:

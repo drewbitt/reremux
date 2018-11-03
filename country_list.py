@@ -1,3 +1,4 @@
+# coding=utf-8
 iso_639_choices = [('ab', 'Abkhaz'),
 ('aa', 'Afar'),
 ('af', 'Afrikaans'),
