@@ -1,18 +1,20 @@
 #!/usr/bin/python3
-import subprocess
-import sys
 import os
 import re
+import subprocess
+import sys
+
 import country_list
-from split_chapters import split_file
 from demux_m2ts import demux_m2ts
+from split_chapters import split_file
 
 
 def ask_stuff():
     """ Ask for various settings (guided remux) """
 
     # May want to do some smart asking (looking at eac3to output) to reduce potential choices
-    print('1) Specify and demux playlists 2) Demux in order of m2ts in first playlist 3) Demux based on m2ts order (using playlists) 4) Demux based on the m2ts in the first playlist (directly) ?')
+    print(
+        '1) Specify and demux playlists 2) Demux in order of m2ts in first playlist 3) Demux based on m2ts order (using playlists) 4) Demux based on the m2ts in the first playlist (directly) ?')
     playlist_ordering = int(input()[0])
 
     if playlist_ordering == 1:
@@ -50,7 +52,7 @@ def calculate_range(range_playlist):
     else:
         beg, last = range_playlist, range_playlist
 
-    return int(beg), int(last)+1
+    return int(beg), int(last) + 1
 
 
 def run_shell(cmd, stdout1=None, stdin1=None, stderr1="default"):
@@ -129,6 +131,7 @@ def overall_m2ts_order(strd):
     print("Error getting overall m2ts order")
     sys.exit(1)
 
+
 def change_dirs(source, dest):
     """ Fix for eac3to to save files in an alternate destination. Also sets absolute paths so that we can get relative
         paths later, needed for eac3to afaik """
@@ -163,11 +166,25 @@ def demux(eac3to_cmd, short_name, source, dest):
     elif playlist_ordering == 3:
         order = overall_m2ts_order(proc.stdout.decode())
     elif playlist_ordering == 4:
-        return demux_m2ts(proc.stdout.decode(), source, dest, start_num, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters)
+        return demux_m2ts(proc.stdout.decode(), source, dest, start_num, pcm_to_flac_ans, twoch_to_flac_ans,
+                          name_chapters, eac3to_cmd, short_name)
+    else:
+        # this needs to be checked when asking probably
+        print("Not a valid playlist type (1-4), exiting")
+        sys.exit(1)
+
+    demux_loop(eac3to_cmd, source, dest, order, twoch_to_flac_ans, short_name, pcm_to_flac_ans, name_chapters)
+    # lazy hack for eac3to path issue
+    os.chdir(oldcdw)
+
+
+def demux_loop(eac3to_cmd, source, dest, order, twoch_to_flac_ans, short_name, pcm_to_flac_ans, name_chapters):
+    """ Main loop for demuxing - goes through all playlists, then all tracks in each playlist"""
 
     # Loop eac3to
     for i in order:
-        cmd = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+        cmd = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
+            i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
         proc = run_shell(cmd, stdout1=subprocess.PIPE)
         str_output = proc.stdout.decode()
 
@@ -195,6 +212,7 @@ def demux(eac3to_cmd, short_name, source, dest):
             chapters_shortName_episodeNum.txt
             '''
 
+            to_add = ""
             if "Chapters" in track_type:
                 to_add = "chapters" + "_" + short_name + "_" + start_num + ".txt"
             elif "h264" in track_type:
@@ -233,6 +251,9 @@ def demux(eac3to_cmd, short_name, source, dest):
 
                 to_add = "sub" + "_" + short_name + "_" + start_num + "_track" + str(track_num) + "_" + "".join(
                     country_code) + ".sup"
+            else:
+                print("Unknown track type {0}, exiting".format(track_type))
+                sys.exit(1)
             outer_arr.append([track_num, to_add])
 
         # Prepare eac3to outside of track loop but in playlist loop
@@ -246,7 +267,7 @@ def demux(eac3to_cmd, short_name, source, dest):
 
         # Print and execute command
         print(eac3to_cmd_execute)
-        run_shell(eac3to_cmd_execute, stderr1=None)
+        run_shell(eac3to_cmd_execute, stderr1="")
 
         # Now that chapter file has been created, add chapter titles if requested
         if name_chapters:
@@ -255,5 +276,3 @@ def demux(eac3to_cmd, short_name, source, dest):
         # Start num is converted to a string to have padding of 0s
         # Increase start num (i.e. episode number) by one every loop iteration
         if start_num.isnumeric(): start_num = str(int(start_num) + 1).rjust(3, "0")
-    # lazy hack for eac3to path issue
-    os.chdir(oldcdw)
