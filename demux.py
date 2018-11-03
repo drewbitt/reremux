@@ -173,18 +173,24 @@ def demux(eac3to_cmd, short_name, source, dest):
         print("Not a valid playlist type (1-4), exiting")
         sys.exit(1)
 
-    demux_loop(eac3to_cmd, source, dest, order, twoch_to_flac_ans, short_name, pcm_to_flac_ans, name_chapters)
+    demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, short_name, pcm_to_flac_ans,
+               name_chapters)
     # lazy hack for eac3to path issue
     os.chdir(oldcdw)
 
 
-def demux_loop(eac3to_cmd, source, dest, order, twoch_to_flac_ans, short_name, pcm_to_flac_ans, name_chapters):
+def demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, short_name, pcm_to_flac_ans,
+               name_chapters, m2ts=False):
     """ Main loop for demuxing - goes through all playlists, then all tracks in each playlist"""
 
     # Loop eac3to
     for i in order:
-        cmd = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
-            i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+        if m2ts:
+            cmd = eac3to_cmd + "\"" + os.path.relpath(source,
+                                                      start=dest) + "\" 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+        else:
+            cmd = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
+                i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
         proc = run_shell(cmd, stdout1=subprocess.PIPE)
         str_output = proc.stdout.decode()
 
