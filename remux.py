@@ -1,9 +1,10 @@
 #!/usr/bin/python3
-import subprocess
-import sys
 import os
 import random
+import subprocess
+import sys
 from argparse import ArgumentParser
+
 import demux
 import merge
 

@@ -5,11 +5,11 @@ import sys
 
 import numpy
 
-import split_video
 import demux
+import split_video
 
 
-def demux_m2ts(stdout, source, dest, start_num, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters, eac3to_cmd,
+def demux_m2ts(stdout, source, dest, oldcdw, start_num, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters, eac3to_cmd,
                short_name):
     """ Demuxes using m2ts directly (not playlists) and split chapters automatically using video times """
 
@@ -24,10 +24,13 @@ def demux_m2ts(stdout, source, dest, start_num, pcm_to_flac_ans, twoch_to_flac_a
     # If they were, they'll be removed. If not removed, they'd mess up episode numbering anyway
     m2ts_arr_paths_lengths = remove_outliers(m2ts_arr_paths_lengths)
 
-    demux_m2ts(eac3to_cmd, source, dest, start_num, m2ts_arr_paths_lengths, twoch_to_flac_ans, short_name,
-               pcm_to_flac_ans, name_chapters, m2ts=True)
+    # demux.demux_loop(eac3to_cmd, "", dest, start_num, m2ts_arr_paths_lengths, twoch_to_flac_ans, short_name,
+    #                 pcm_to_flac_ans, name_chapters, m2ts=True)
 
     do_chapters(eac3to_cmd, source, dest, short_name, start_num, name_chapters, m2ts_arr_paths_lengths)
+
+    # lazy hack for eac3to path issue
+    os.chdir(oldcdw)
 
 
 def get_m2ts_order(strd):
@@ -65,6 +68,7 @@ def remove_outliers(arr):
 def do_chapters(eac3to_cmd, source, dest, short_name, start_num, name_chapters, m2ts_arr_paths_lengths):
     """ Since chapters are only in the playlist, special treatment """
 
+    print("\nGetting chapter file from main playlist")
     # Get info of first playlist
     cmd = eac3to_cmd + " \"" + os.path.relpath(source,
                                                start=dest) + "\" \"1)\" 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
@@ -74,22 +78,33 @@ def do_chapters(eac3to_cmd, source, dest, short_name, start_num, name_chapters, 
     # Run regex to get track number of the chapters (usually track 1)
     pattern = re.compile(r"([1-9])+: Chapters")
     match = pattern.search(str_output)
+    if match:
+        chap_track = match.group(1)
+    else:
+        print("Dod not find chapters")
+        return 2  # something
 
     # Get command ready to execute
     chap_name = "all_chapters" + "_" + short_name + ".txt"
-    eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"1)\" " + match[
-        0] + ":" + chap_name + " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+    eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(source,
+                                                              start=dest) + "\" \"1)\" " + chap_track + ":" + chap_name + " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
     print(eac3to_cmd_execute)
 
     # Execute command, getting chapter file on disk
-    demux.run_shell(eac3to_cmd_execute, stderr1="")
+    demux.run_shell(eac3to_cmd_execute, stderr1=None)
 
+    print("\nSplitting chapter file based on video times")
     # TODO: Might want to check if its on disk first
+    # TODO: I am looking at m2ts times to do this. I already demuxed to h264, might use that
+    # TODO: By calling split_by_video, I am getting m2ts times a second time, when I already did that
+    #       in order to remove outliers.
 
     paths = [x[1] for x in m2ts_arr_paths_lengths]
     n_format = "chapters_{}_%n".format(short_name)
 
     if name_chapters:
-        split_video.split_by_video(chap_name, True, paths, offset=start_num, file_name_format=n_format)
+        split_video.split_by_video(chap_name, True, paths, offset=int(start_num), file_name_format=n_format)
     else:
-        split_video.split_by_video(chap_name, False, paths, offset=start_num, file_name_format=n_format)
+        split_video.split_by_video(chap_name, False, paths, offset=int(start_num), file_name_format=n_format)
+
+    # TODO: Format of chapter files needs to be changed, chapter numbers only two digits, need to be three

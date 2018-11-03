@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-import subprocess
 import os
-import sys
 import re
+import subprocess
+import sys
 from collections import defaultdict
 
 
@@ -38,7 +38,7 @@ def create_dict_by_country(list_of_files):
 
     files_lang_dict = defaultdict(list)
 
-    # Var used
+    # var set if multiple files of same language exist (possibly need to change merging string for titles)
     notice = False
 
     for file in list_of_files:

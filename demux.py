@@ -166,7 +166,7 @@ def demux(eac3to_cmd, short_name, source, dest):
     elif playlist_ordering == 3:
         order = overall_m2ts_order(proc.stdout.decode())
     elif playlist_ordering == 4:
-        return demux_m2ts(proc.stdout.decode(), source, dest, start_num, pcm_to_flac_ans, twoch_to_flac_ans,
+        return demux_m2ts(proc.stdout.decode(), source, dest, oldcdw, start_num, pcm_to_flac_ans, twoch_to_flac_ans,
                           name_chapters, eac3to_cmd, short_name)
     else:
         # this needs to be checked when asking probably
@@ -186,8 +186,9 @@ def demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, sh
     # Loop eac3to
     for i in order:
         if m2ts:
-            cmd = eac3to_cmd + "\"" + os.path.relpath(source,
-                                                      start=dest) + "\" 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
+            i = i[1]
+            cmd = eac3to_cmd + " \"" + os.path.relpath(i,
+                                                       start=dest) + "\" 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
         else:
             cmd = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
                 i) + ")\"" " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
@@ -212,8 +213,8 @@ def demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, sh
             track_type = k[1]
 
             ''' The layout is:
-            sub_shortName_episodeNum_subTrackNumber_countryCode.sup
-            aud_shortName_episodeNum_channels_countryCode.ext
+            sub_shortName_episodeNum_trackNumber_countryCode.sup
+            aud_shortName_episodeNum_trackNumber_channels_countryCode.ext
             vid_shortName_episodeNum_dimensions.h264
             chapters_shortName_episodeNum.txt
             '''
@@ -228,35 +229,49 @@ def demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, sh
 
                 to_add = "vid" + "_" + short_name + "_" + start_num + "_" + resolution + ".h264"
             elif "PCM" in track_type or "TrueHD" in track_type or "DTS Master Audio" in track_type:
-                # Get iso 639 country code from full name of country
-                pattern = re.compile(r".*?, (.*?), ([0-9]+\.[0-9])")
-                match = pattern.match(track_type)
-                country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match.group(1)]
-                channels = match.group(2)
+                if m2ts:
+                    pattern = re.compile(r".*?, ([0-9]+\.[0-9])")
+                    match = pattern.match(track_type)
+                    if match:
+                        channels = match.group(1)
+                        # country code for m2ts since languages usually only in playlists
+                        country_code = "munknown"
+                else:
+                    pattern = re.compile(r".*?, (.*?), ([0-9]+\.[0-9])")
+                    match = pattern.match(track_type)
+                    if match:
+                        # Get iso 639 country code from full name of country
+                        country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match.group(1)]
+                        country_code = "".join(country_code)
+                        channels = match.group(2)
 
                 if convert_all_to_flac:
-                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
-                        country_code) + ".flac"
+                    to_add = "aud" + "_" + short_name + "_" + start_num + "_track" + str(
+                        track_num) + "_" + channels + "_" + country_code + ".flac"
                 elif "PCM" in track_type:
                     if pcm_to_flac_ans:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
-                            country_code) + ".flac"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_track" + str(
+                            track_num) + "_" + channels + "_" + country_code + ".flac"
                     else:
-                        to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
-                            country_code) + ".pcm"
+                        to_add = "aud" + "_" + short_name + "_" + start_num + "_track" + str(
+                            track_num) + "_" + channels + "_" + country_code + ".pcm"
                 elif "TrueHD" in track_type:
-                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
-                        country_code) + ".truehd"
+                    to_add = "aud" + "_" + short_name + "_" + start_num + "_track" + str(
+                        track_num) + "_" + channels + "_" + country_code + ".truehd"
                 elif "DTS Master Audio" in track_type:
-                    to_add = "aud" + "_" + short_name + "_" + start_num + "_" + channels + "_" + "".join(
-                        country_code) + ".dtsma"
+                    to_add = "aud" + "_" + short_name + "_" + start_num + "_track" + str(
+                        track_num) + "_" + channels + "_" + country_code + ".dtsma"
             elif "PGS" in track_type:
-                pattern = re.compile(r"^.*?, ([a-zA-Z]*)")
-                match = pattern.match(track_type).group(1)
-                country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match]
+                if m2ts:
+                    country_code = "munknown"
+                else:
+                    pattern = re.compile(r"^.*?, ([a-zA-Z]*)")
+                    match = pattern.match(track_type).group(1)
+                    country_code = [item[0] for item in country_list.iso_639_choices if item[1] == match]
+                    country_code = "".join(country_code)
 
-                to_add = "sub" + "_" + short_name + "_" + start_num + "_track" + str(track_num) + "_" + "".join(
-                    country_code) + ".sup"
+                to_add = "sub" + "_" + short_name + "_" + start_num + "_track" + str(
+                    track_num) + "_" + country_code + ".sup"
             else:
                 print("Unknown track type {0}, exiting".format(track_type))
                 sys.exit(1)
@@ -265,18 +280,21 @@ def demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, sh
         # Prepare eac3to outside of track loop but in playlist loop
 
         # Write command
-        eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
-            i) + ")\" "
+        if m2ts:
+            eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(i, start=dest) + "\" "
+        else:
+            eac3to_cmd_execute = eac3to_cmd + " \"" + os.path.relpath(source, start=dest) + "\" \"" + str(
+                i) + ")\" "
         for entry in outer_arr:
             eac3to_cmd_execute += str(entry[0]) + ":" + entry[1] + " "
         eac3to_cmd_execute += " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
 
         # Print and execute command
         print(eac3to_cmd_execute)
-        run_shell(eac3to_cmd_execute, stderr1="")
+        run_shell(eac3to_cmd_execute, stderr1=None)
 
         # Now that chapter file has been created, add chapter titles if requested
-        if name_chapters:
+        if name_chapters and not m2ts:
             name_chaps(outer_arr)
 
         # Start num is converted to a string to have padding of 0s
