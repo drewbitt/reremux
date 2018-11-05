@@ -57,7 +57,7 @@ def remove_outliers(arr):
     """ Removes outliers by comparing m2ts lengths """
     # arr from demux_m2ts is [(length, fullpath), (length, fullpath)] etc
 
-    print("Removing outliers")
+    print("Removing outliers\n")
     new_arr = numpy.empty(len(arr))
     for count, ele in enumerate(arr):
         new_arr[count] = ele[0]
@@ -138,12 +138,10 @@ def replace_languages(str_output, short_name, found_chapters):
     track_lang_dict = dict()
     for d in match:
         track_lang_dict[d[0]] = (d[1], d[2])
-    print(track_lang_dict)
 
     # PROBLEM: since mpls has chapters, 1 extra track, so track numbers will be off. Check if chapters and adjust when needed.
 
     print("Adding languages to subtitle and audio track filenames")
-    print(list_of_files)
     for i in list_of_files:
         f = file_pattern.search(i)
 
@@ -151,7 +149,13 @@ def replace_languages(str_output, short_name, found_chapters):
         track_num = f.group(2)
         if found_chapters:
             track_num = str(int(track_num) + 1)
-        dict_info = track_lang_dict[track_num]
+        try:
+            dict_info = track_lang_dict[track_num]
+        except KeyError:
+            print(
+                "Error with the episode for {}, has an extra track, all track languages could be messed up so please manually check".format(
+                    i))
+            continue
 
         if (type == "sub" and "Subtitle" in dict_info[0]) or (type != "sub" and not ("Subtitle" in dict_info[0])):
             # doing the != since aud could be truehd, pgs, dts, etc and I didnt wanna list out rn
