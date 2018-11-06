@@ -77,13 +77,13 @@ def mkvmerge_string_dicts(sub_files_lang_dict, aud_files_lang_dict, check_signs_
 
     # Subtitles
     for key1, value1 in sub_files_lang_dict.items():
-        for count, val in enumerate(value1, 1):
+        for count, val in enumerate(value1):
             mkvmerge_string += " {0} --language 0:{1}".format(comp_str, key1)
 
             # Add sub track names if signs/songs is set
             if check_signs_songs:
-                # Only do signs & songs for English for now
-                if count == 1 and key1 == "en":
+                # Only do signs & songs for English for now. First sub track if theres 2 or more.
+                if count == 0 and len(value1) >= 2 and key1 == "en":
                     # not sure if I should make signs and songs forced here with --forced-track 0:true
                     mkvmerge_string += " --track-name 0:\"Signs & Songs\""
             # Add sub file
