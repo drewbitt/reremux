@@ -228,7 +228,7 @@ def demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, sh
                 resolution = pattern.match(track_type).group(1)
 
                 to_add = "vid" + "_" + short_name + "_" + start_num + "_" + resolution + ".h264"
-            elif "PCM" in track_type or "TrueHD" in track_type or "DTS Master Audio" in track_type:
+            elif "PCM" in track_type or "TrueHD" in track_type or "DTS Master Audio" in track_type or "AC3" in track_type:
                 if m2ts:
                     pattern = re.compile(r".*?, ([0-9]+\.[0-9])")
                     match = pattern.match(track_type)
@@ -261,6 +261,9 @@ def demux_loop(eac3to_cmd, source, dest, start_num, order, twoch_to_flac_ans, sh
                 elif "DTS Master Audio" in track_type:
                     to_add = "aud" + "_" + short_name + "_" + start_num + "_track" + str(
                         track_num) + "_" + channels + "_" + country_code + ".dtsma"
+                elif "AC3" in track_type:
+                    to_add = "aud" + "_" + short_name + "_" + start_num + "_track" + str(
+                        track_num) + "_" + channels + "_" + country_code + ".ac3"
             elif "PGS" in track_type:
                 if m2ts:
                     country_code = "munknown"

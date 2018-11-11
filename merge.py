@@ -179,7 +179,12 @@ def mux(short_name, series_name, dest):
         # Get video resolution - 1080p, 480p etc. used in the filename path.
         vid_resolution_pattern = re.compile(".*_([0-9]+(i|p))")
         vid_resolution = vid_resolution_pattern.match(
-            ''.join([item for item in value if item.startswith("vid")])).group(1)
+            ''.join([item for item in value if item.startswith("vid")]))
+        if vid_resolution:
+            vid_resolution = vid_resolution.group(1)
+        else:
+            print("No video track for ep {} found, skipping".format(key))
+            continue
 
         mkvmerge_string = "mkvmerge -o "
 
@@ -191,8 +196,11 @@ def mux(short_name, series_name, dest):
             mkvmerge_out_path += "FLAC"
         elif any(".dtsma" in s for s in value):
             mkvmerge_out_path += "DTS-HDMA"
-        if any(".pcm" in s for s in value):
+        elif any(".pcm" in s for s in value):
             mkvmerge_out_path += "PCM"
+        elif any(".ac3" in s for s in value):
+            mkvmerge_out_path += "AC3"
+
         comp_str = "--compression 0:none"
         mkvmerge_out_path += " REMUX].mkv\""
 
