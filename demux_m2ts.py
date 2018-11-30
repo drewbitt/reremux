@@ -12,7 +12,7 @@ import split_video
 
 
 def demux_m2ts(stdout, source, dest, oldcdw, start_num, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters, eac3to_cmd,
-               short_name):
+               short_name, chapters_only):
     """ Demuxes using m2ts directly (not playlists) and split chapters automatically using video times """
 
     m2ts_arr = get_m2ts_order(stdout)
@@ -26,18 +26,20 @@ def demux_m2ts(stdout, source, dest, oldcdw, start_num, pcm_to_flac_ans, twoch_t
     # If they were, they'll be removed. If not removed, they'd mess up episode numbering anyway
     m2ts_arr_paths_lengths = remove_outliers(m2ts_arr_paths_lengths)
 
-    demux.demux_loop(eac3to_cmd, "", dest, start_num, m2ts_arr_paths_lengths, twoch_to_flac_ans, short_name,
-                     pcm_to_flac_ans, name_chapters, m2ts=True)
+    if not chapters_only:
+        demux.demux_loop(eac3to_cmd, "", dest, start_num, m2ts_arr_paths_lengths, twoch_to_flac_ans, short_name,
+                        pcm_to_flac_ans, name_chapters, m2ts=True)
 
     playlist_output = first_playlist_string(eac3to_cmd, source, dest)
     found_chapters = do_chapters(eac3to_cmd, source, dest, short_name, start_num, name_chapters, m2ts_arr_paths_lengths,
                                  playlist_output)
 
-    # Replace audio languages in files with audio language of munknown
-    replace_languages(playlist_output, short_name, found_chapters)
+    if not chapters_only:
+        # Replace audio languages in files with audio language of munknown
+        replace_languages(playlist_output, short_name, found_chapters)
 
-    # lazy hack for eac3to path issue
-    os.chdir(oldcdw)
+        # lazy hack for eac3to path issue
+        os.chdir(oldcdw)
 
 
 def get_m2ts_order(strd):

@@ -26,6 +26,8 @@ parser = ArgumentParser("Remuxin' with eac3to and mkvmerge in *nix CLI")
 parser.add_argument('srcdest', metavar="src dest", type=str, nargs="+")
 parser.add_argument("--mux-only", dest="mux_only", nargs="?", const="True",
                     help="Only mux and don't demux from BDMV. Ignores source if set")
+parser.add_argument("--chapters-only", dest="chapters_only", nargs="?", const="True",
+                    help="Only get chapter file(s) and split them based off of video times. Assumes demux based on the m2ts in the first playlist (directly) ")
 
 # TODO: Actually ignore source if --mux-only is set
 # Looking it up online this looks tough to do - optionally require an argument unless a different argument is specified
@@ -71,7 +73,7 @@ if not args.mux_only:
     # TODO: I don't like this. Don't know what you got with non-words. Would rather have first whole word.
     short_name = ''.join(random.choice(series_name.replace(" ", "")) for x in range(6))
 
-    demux.demux(eac3to_cmd, short_name, os.path.normpath(source), os.path.normpath(dest))
+    demux.demux(eac3to_cmd, short_name, os.path.normpath(source), os.path.normpath(dest), args.chapters_only)
     # Demux will exit right now on errors so no need to check for anything. Just going to go off of the shortname we have
     # and the files that exist in the destination directory.
 

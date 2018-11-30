@@ -9,28 +9,34 @@ from demux_m2ts import demux_m2ts
 from split_chapters import split_file
 
 
-def ask_stuff():
+def ask_stuff(chapters_only):
     """ Ask for various settings (guided remux) """
-
-    # May want to do some smart asking (looking at eac3to output) to reduce potential choices
-    print(
-        '1) Specify and demux playlists 2) Demux in order of m2ts in first playlist 3) Demux based on m2ts order (using playlists) 4) Demux based on the m2ts in the first playlist (directly) ?')
-    playlist_ordering = int(input()[0])
-
-    if playlist_ordering == 1:
-        print("Choose the number / range of playlists to demux (i.e. 1 or 2-10)")
-        range_playlist = input()
-    else:
+    if chapters_only:
+        playlist_ordering = 4
         range_playlist = "doesn't matter"
+    else:
+        # May want to do some smart asking (looking at eac3to output) to reduce potential choices
+        print(
+            '1) Specify and demux playlists 2) Demux in order of m2ts in first playlist 3) Demux based on m2ts order (using playlists) 4) Demux based on the m2ts in the first playlist (directly) ?')
+        playlist_ordering = int(input()[0])
+        if playlist_ordering == 1:
+            print("Choose the number / range of playlists to demux (i.e. 1 or 2-10)")
+            range_playlist = input()
+        else:
+            range_playlist = "doesn't matter"
 
     print("Choose the number of the episode to start numbering files at ")
     start_num = input().rjust(3, "0")
 
-    print("If PCM is present, convert PCM to FLAC? (y/n)")
-    pcm_to_flac_ans = input() == "y"
+    if chapters_only:
+        pcm_to_flac_ans = False
+        twoch_to_flac_ans = False
+    else:
+        print("If PCM is present, convert PCM to FLAC? (y/n)")
+        pcm_to_flac_ans = input() == "y"
 
-    print("If 2.0 is the only audio present, convert to FLAC? (y/n)")
-    twoch_to_flac_ans = input() == "y"
+        print("If 2.0 is the only audio present, convert to FLAC? (y/n)")
+        twoch_to_flac_ans = input() == "y"
 
     print("Name chapters generic names (Chapter 01, Chapter 02 etc.)? (y/n)")
     name_chapters = input() == "y"
@@ -144,7 +150,7 @@ def change_dirs(source, dest):
     return source, dest, oldcdw
 
 
-def demux(eac3to_cmd, short_name, source, dest):
+def demux(eac3to_cmd, short_name, source, dest, chapters_only):
     """ Guided demux using eac3to """
 
     cmd = eac3to_cmd + " \"" + source + "\"" + " 2>/dev/null | tr -cd \"\\11\\12\\15\\40-\\176\""
@@ -155,7 +161,7 @@ def demux(eac3to_cmd, short_name, source, dest):
     source, dest, oldcdw = change_dirs(source, dest)
 
     # Prompt the user for various things (guided remux)
-    range_playlist, start_num, playlist_ordering, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters = ask_stuff()
+    range_playlist, start_num, playlist_ordering, pcm_to_flac_ans, twoch_to_flac_ans, name_chapters = ask_stuff(chapters_only)
 
     if playlist_ordering == 1:
         # Split range and calulate it for loop from input
@@ -167,7 +173,7 @@ def demux(eac3to_cmd, short_name, source, dest):
         order = overall_m2ts_order(proc.stdout.decode())
     elif playlist_ordering == 4:
         return demux_m2ts(proc.stdout.decode(), source, dest, oldcdw, start_num, pcm_to_flac_ans, twoch_to_flac_ans,
-                          name_chapters, eac3to_cmd, short_name)
+                          name_chapters, eac3to_cmd, short_name, chapters_only)
     else:
         # this needs to be checked when asking probably
         print("Not a valid playlist type (1-4), exiting")
