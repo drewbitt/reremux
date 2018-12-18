@@ -67,13 +67,13 @@ def mkvmerge_string_dicts(sub_files_lang_dict, aud_files_lang_dict, check_signs_
     # Audio first
     # Do english first in the muxing string
     for val in sorted(aud_files_lang_dict["en"]):
-        mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, "en", os.path.join(dest, val))
+        mkvmerge_string += " {0} --language 0:{1} \"{2}\"".format(comp_str, "en", os.path.join(dest, val))
 
     # Then do other languages
     for key1, value1 in aud_files_lang_dict.items():
         if key1 != "en":
             for file in sorted(value1):
-                mkvmerge_string += " {0} --language 0:{1} {2}".format(comp_str, key1, os.path.join(dest, file))
+                mkvmerge_string += " {0} --language 0:{1} \"{2}\"".format(comp_str, key1, os.path.join(dest, file))
 
     # Subtitles
     for key1, value1 in sub_files_lang_dict.items():
@@ -87,7 +87,7 @@ def mkvmerge_string_dicts(sub_files_lang_dict, aud_files_lang_dict, check_signs_
                     # not sure if I should make signs and songs forced here with --forced-track 0:true
                     mkvmerge_string += " --track-name 0:\"Signs & Songs\""
             # Add sub file
-            mkvmerge_string += " {}".format(os.path.join(dest, val))
+            mkvmerge_string += " \"{}\"".format(os.path.join(dest, val))
 
     return mkvmerge_string
 
@@ -189,7 +189,7 @@ def mux(short_name, series_name, dest):
         mkvmerge_string = "mkvmerge -o "
 
         # Create file name path in mkvmerge_out_path
-        mkvmerge_out_path = "\"{0} - {1} [Blu-ray {2} h264 ".format(series_name, ep_key, vid_resolution)
+        mkvmerge_out_path = "{0} - {1} [Blu-ray {2} h264 ".format(series_name, ep_key, vid_resolution)
         if any(".truehd" in s for s in value):
             mkvmerge_out_path += "TrueHD"
         elif any(".flac" in s for s in value):
@@ -202,17 +202,17 @@ def mux(short_name, series_name, dest):
             mkvmerge_out_path += "AC3"
 
         comp_str = "--compression 0:none"
-        mkvmerge_out_path += " REMUX].mkv\""
+        mkvmerge_out_path += " REMUX].mkv"
 
         # Append the file name path to mkvmerge_string
-        mkvmerge_string += os.path.join(dest, mkvmerge_out_path)
+        mkvmerge_string += os.path.join("\"" + dest, mkvmerge_out_path) + "\""
 
         # Add chapters to mkvmerge_string
         mkvmerge_string += " --chapters {}".format(
-            os.path.join(dest, ''.join([item for item in value if item.startswith("chapters")])))
+            os.path.join("\"" + dest, ''.join([item for item in value if item.startswith("chapters")]))) + "\""
         # Add video to mkvmerge_string
-        mkvmerge_string += " {0} {1}".format(comp_str, os.path.join(dest, ''.join(
-            [item for item in value if item.startswith("vid")])))
+        mkvmerge_string += " {0} {1}".format(comp_str, os.path.join("\"" + dest, ''.join(
+            [item for item in value if item.startswith("vid")]))) + "\""
 
         # Add audio to mkvmerge_string
         # First create dict by languages
