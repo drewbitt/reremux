@@ -21,9 +21,9 @@ def split_by_video(file, names, videos, offset=1, file_name_format="chapters%n")
     for filename in videos:
         video_lengths.append(getLength(filename))
 
+    print("Video lengths: {}".format(video_lengths))
     indexes = parse_file(file, video_lengths)
     # Split!
-    print("Splitting files")
     split_file(file, names, False, indexes, offset, file_name_format)
 
 
@@ -75,8 +75,8 @@ def parse_file(file, times):
             dt_line = datetime.datetime.strptime(line_time[1], "%H:%M:%S.%f")
 
             # Compare time to time in times[time_arr_index]. Duration may need to change for range
-            if dt_line - datetime.timedelta(0, len(indexes) + 2) <= times[time_arr_index] + total_time <= dt_line + datetime.timedelta(
-                    0, len(indexes) + 2):
+            dt_line_adjusted = [dt_line - datetime.timedelta(0, len(indexes) + 2), dt_line + datetime.timedelta(0, len(indexes) + 2)]
+            if dt_line_adjusted[0] <= times[time_arr_index] + total_time <= dt_line_adjusted[1]:
                 # Since I didn't use timedeltas for dates in the first place like I should have, will convert to timedelta
                 # and then add to total_time so that I can add datetimes (impossible without using timedeltas)
                 ti = times[time_arr_index]
@@ -89,18 +89,25 @@ def parse_file(file, times):
                 else:
                     indexes.extend([0, math.ceil((count + 1) / 2)])
                 first = True
+            
+            # check if second to last line - if so, and it didnt work in the first if condition, just ignore
+            # because this means there isnt a chapter for the end of the last video file time
+            elif count + 2 == len(content):
+                time_arr_index += 1
+                indexes.append(math.ceil((count + 1) / 2))
 
-        if time_arr_index + 1 > len(times):
+        elif time_arr_index + 1 > len(times):
             # we done, add indexes for whats remaining
             if count + 2 < len(content):
                 indexes.append(int(len(content) / 2))
             print("\nUsing indexes {}".format(indexes))
             break
 
-        # If this is true, is bad, exit
-        if count + 1 == len(content) and time_arr_index + 1 <= len(times):
+        # If this is true, is bad, exit.
+        elif count + 1 == len(content) and time_arr_index + 1 <= len(times):
             print("\nDid not find a matching chapter for time {0} (video file number {1}). Exiting".format(
                 times[time_arr_index], time_arr_index + 1))
+            print("Debug indexes: {}".format(indexes))
             sys.exit(1)
 
     return indexes

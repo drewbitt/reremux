@@ -25,6 +25,7 @@ def demux_m2ts(stdout, source, dest, oldcdw, start_num, pcm_to_flac_ans, twoch_t
     # Hopefully small extras or anything important wouldn't be included here.
     # If they were, they'll be removed. If not removed, they'd mess up episode numbering anyway
     m2ts_arr_paths_lengths = remove_outliers(m2ts_arr_paths_lengths)
+    print("Chosen m2ts paths with lengths: {}\n".format(m2ts_arr_paths_lengths))
 
     if not chapters_only:
         demux.demux_loop(eac3to_cmd, "", dest, start_num, m2ts_arr_paths_lengths, twoch_to_flac_ans, short_name,
@@ -51,6 +52,13 @@ def get_m2ts_order(strd):
         combo = match.group(1).rstrip()
         combo = combo.split("+")
         return [i.zfill(5) for i in combo]
+
+    # other possible pattern
+    pattern = re.compile(r"([0-9]+)\.m2ts")
+    match = pattern.findall(strd)
+    if match:
+        return match
+
     print("Did not find m2ts in the first playlist, exiting")
     sys.exit(1)
 
@@ -71,7 +79,9 @@ def remove_outliers(arr):
     # Check if within 2 stds, if not remove from list.
     for count, ele in enumerate(new_arr):
         if ele > mean - 2 * sd:
-            final_list.append((ele, arr[count][1]))
+            # Also remove everything under 10 seconds... lazy fix to a std error, could probably be increased too
+            if ele > 10:
+                final_list.append((ele, arr[count][1]))
     return final_list
 
 
